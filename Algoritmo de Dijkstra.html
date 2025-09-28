@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Dijkstra con Grafo Visual</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 20px;
+    }
+    select, button {
+      padding: 8px;
+      margin: 5px;
+      font-size: 16px;
+    }
+    button {
+      cursor: pointer;
+    }
+    #resultado {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #2c3e50;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Algoritmo de Dijkstra - Visualización</h1>
+  <p>Selecciona un punto de inicio y destino:</p>
+
+  <label for="inicio">Inicio:</label>
+  <select id="inicio">
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+    <option value="E">E</option>
+  </select>
+
+  <label for="destino">Destino:</label>
+  <select id="destino">
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+    <option value="E">E</option>
+  </select>
+
+  <br><br>
+  <button onclick="calcularRuta()">Calcular Ruta</button>
+  
+  <div id="resultado"></div>
+
+  <canvas id="grafo" width="600" height="400"></canvas>
+
+  <script>
+    // Definir grafo con distancias
+    const grafo = {
+      'A': { 'B': 3, 'C': 4 },
+      'B': { 'C': 2, 'D': 7, 'E': 9 },
+      'C': { 'D': 2 },
+      'D': { 'E': 1 },
+      'E': {}
+    };
+
+    // Posiciones fijas de los nodos para dibujar en canvas
+    const posiciones = {
+      'A': {x: 100, y: 200},
+      'B': {x: 250, y: 100},
+      'C': {x: 250, y: 300},
+      'D': {x: 400, y: 200},
+      'E': {x: 550, y: 200}
+    };
+
+    function dijkstra(inicio, destino) {
+      let distancias = {};
+      let visitados = {};
+      let previos = {};
+
+      for (let nodo in grafo) {
+        distancias[nodo] = Infinity;
+        previos[nodo] = null;
+      }
+      distancias[inicio] = 0;
+
+      while (true) {
+        let nodoActual = null;
+
+        for (let nodo in distancias) {
+          if (!visitados[nodo] && (nodoActual === null || distancias[nodo] < distancias[nodoActual])) {
+            nodoActual = nodo;
+          }
+        }
+
+        if (nodoActual === null) break;
+
+        let distanciaActual = distancias[nodoActual];
+        let vecinos = grafo[nodoActual];
+
+        for (let vecino in vecinos) {
+          let nuevaDistancia = distanciaActual + vecinos[vecino];
+          if (nuevaDistancia < distancias[vecino]) {
+            distancias[vecino] = nuevaDistancia;
+            previos[vecino] = nodoActual;
+          }
+        }
+
+        visitados[nodoActual] = true;
+      }
+
+      let camino = [];
+      let nodo = destino;
+      while (nodo) {
+        camino.unshift(nodo);
+        nodo = previos[nodo];
+      }
+
+      return {
+        distancia: distancias[destino],
+        camino: camino
+      };
+    }
+
+    function dibujarGrafo(camino) {
+      const canvas = document.getElementById("grafo");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Dibujar aristas
+      for (let nodo in grafo) {
+        for (let vecino in grafo[nodo]) {
+          let x1 = posiciones[nodo].x;
+          let y1 = posiciones[nodo].y;
+          let x2 = posiciones[vecino].x;
+          let y2 = posiciones[vecino].y;
+
+          ctx.strokeStyle = "#aaa";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          // Mostrar distancia en la mitad
+          let xm = (x1 + x2) / 2;
+          let ym = (y1 + y2) / 2;
+          ctx.fillStyle = "black";
+          ctx.font = "14px Arial";
+          ctx.fillText(grafo[nodo][vecino], xm, ym);
+        }
+      }
+
+      // Dibujar aristas del camino más corto en rojo
+      for (let i = 0; i < camino.length - 1; i++) {
+        let n1 = camino[i];
+        let n2 = camino[i + 1];
+        let x1 = posiciones[n1].x;
+        let y1 = posiciones[n1].y;
+        let x2 = posiciones[n2].x;
+        let y2 = posiciones[n2].y;
+
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      // Dibujar nodos
+      for (let nodo in posiciones) {
+        let x = posiciones[nodo].x;
+        let y = posiciones[nodo].y;
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fillStyle = "lightblue";
+        ctx.fill();
+        ctx.strokeStyle = "black";
+        ctx.stroke();
+        ctx.fillStyle = "black";
+        ctx.font = "16px Arial";
+        ctx.fillText(nodo, x - 5, y + 5);
+      }
+    }
+
+    function calcularRuta() {
+      let inicio = document.getElementById("inicio").value;
+      let destino = document.getElementById("destino").value;
+
+      if (inicio === destino) {
+        document.getElementById("resultado").innerHTML = 
+          "Ya estás en el nodo " + inicio + ", no necesitas desplazarte.";
+        dibujarGrafo([inicio]); 
+        return;
+      }
+
+      let resultado = dijkstra(inicio, destino);
+      document.getElementById("resultado").innerHTML =
+        "Ruta más corta: " + resultado.camino.join(" → ") +
+        "<br>Distancia total: " + resultado.distancia;
+
+      dibujarGrafo(resultado.camino);
+    }
+
+    // Dibujar grafo inicial
+    dibujarGrafo([]);
+  </script>
+</body>
+</html>
